@@ -65,7 +65,7 @@ export default function MultiplayerHeartChase() {
         duration: (Math.random() * 3 + 2) + 's'
       };
       setHearts(prev => [...prev, newHeart]);
-      
+
       setTimeout(() => {
         setHearts(prev => prev.filter(h => h.id !== newHeart.id));
       }, 5000);
@@ -95,7 +95,7 @@ export default function MultiplayerHeartChase() {
   useEffect(() => {
     // Initialize socket connection with better error handling
     const serverUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
-    
+
     const newSocket = io(serverUrl, {
       transports: ['polling', 'websocket'], // Try websocket first, fallback to polling
       timeout: 10000,
@@ -127,7 +127,7 @@ export default function MultiplayerHeartChase() {
     newSocket.on('connect_error', (error) => {
       clearTimeout(connectionTimeout);
       console.error('Connection error:', error);
-      
+
       // More specific error handling
       if (error.message.includes('xhr poll error')) {
         setConnectionError('Server connection failed. Please ensure the socket server is running on port 3001.');
@@ -145,7 +145,7 @@ export default function MultiplayerHeartChase() {
     newSocket.on('disconnect', (reason) => {
       setIsConnected(false);
       console.log('Disconnected from server:', reason);
-      
+
       // Show appropriate message based on disconnect reason
       if (reason === 'io server disconnect') {
         showNotification('info', 'Server disconnected. Please refresh the page.');
@@ -184,17 +184,17 @@ export default function MultiplayerHeartChase() {
       console.log('Game state updated:', state);
       console.log('Current player scores:', state.players.map(p => `${p.name}: ${p.score}`));
       setGameState(state);
-      
+
       // Play game over sound when game finishes
       if (state.status === 'finished' && gameState?.status === 'playing') {
         playSound('gameOver');
         triggerHaptic('heavy');
-        
+
         // Update statistics
         const currentPlayer = state.players.find(p => p.id === playerId);
         if (currentPlayer) {
           const isWinner = state.players.reduce((max, player) => player.score > max.score ? player : max).id === playerId;
-          
+
           setStats(prev => ({
             gamesPlayed: prev.gamesPlayed + 1,
             totalScore: prev.totalScore + currentPlayer.score,
@@ -212,21 +212,21 @@ export default function MultiplayerHeartChase() {
 
     newSocket.on('heart-caught', ({ playerId, heartId, points, playerName, heartEmoji }) => {
       console.log(`${playerName} caught heart ${heartId} for ${points} points`);
-      
+
       // Update local game state to reflect the caught heart
       if (gameState) {
         const updatedHearts = gameState.currentHearts.filter(h => h.id !== heartId);
-        const updatedPlayers = gameState.players.map(p => 
+        const updatedPlayers = gameState.players.map(p =>
           p.id === playerId ? { ...p, score: p.score + points } : p
         );
-        
+
         setGameState({
           ...gameState,
           currentHearts: updatedHearts,
           players: updatedPlayers
         });
       }
-      
+
       // Show who caught the heart
       showCatchNotification(playerName, points, heartEmoji);
     });
@@ -249,7 +249,7 @@ export default function MultiplayerHeartChase() {
       const handleMouseMove = (e: MouseEvent) => {
         const x = (e.clientX / window.innerWidth - 0.5) * 20;
         const y = (e.clientY / window.innerHeight - 0.5) * 20;
-        
+
         document.documentElement.style.setProperty('--parallax-x', `${x}px`);
         document.documentElement.style.setProperty('--parallax-y', `${y}px`);
       };
@@ -264,7 +264,7 @@ export default function MultiplayerHeartChase() {
         const rect = element.getBoundingClientRect();
         const x = e.clientX - rect.left - rect.width / 2;
         const y = e.clientY - rect.top - rect.height / 2;
-        
+
         element.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px) scale(1.05)`;
         element.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
       };
@@ -275,7 +275,7 @@ export default function MultiplayerHeartChase() {
 
       element.addEventListener('mouseenter', handleMouseEnter);
       element.addEventListener('mouseleave', handleMouseLeave);
-      
+
       return () => {
         element.removeEventListener('mouseenter', handleMouseEnter);
         element.removeEventListener('mouseleave', handleMouseLeave);
@@ -290,7 +290,7 @@ export default function MultiplayerHeartChase() {
   // Memoized haptic feedback function (declared before use)
   const triggerHaptic = useCallback((type: 'light' | 'medium' | 'heavy') => {
     if (!hapticEnabled || !('vibrate' in navigator)) return;
-    
+
     try {
       switch (type) {
         case 'light':
@@ -312,12 +312,12 @@ export default function MultiplayerHeartChase() {
   const showNotification = useCallback((type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
     triggerHaptic(type === 'error' ? 'heavy' : 'light');
-    
+
     // Auto-hide after 3 seconds
     const timer = setTimeout(() => {
       setNotification(null);
     }, 3000);
-    
+
     return () => clearTimeout(timer);
   }, [triggerHaptic]);
 
@@ -329,15 +329,15 @@ export default function MultiplayerHeartChase() {
   // Memoized sound effects functions
   const playSound = useCallback((type: 'catch' | 'gameStart' | 'gameOver' | 'join') => {
     if (!soundEnabled) return;
-    
+
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       switch (type) {
         case 'catch':
           oscillator.frequency.value = 800;
@@ -386,13 +386,13 @@ export default function MultiplayerHeartChase() {
       showNotification('error', !socket ? 'Not connected to server' : 'Please enter your name');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       // Simulate creation delay for better UX
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       console.log('Emitting create-heart-room event');
       socket.emit('create-heart-room', { playerName: playerName.trim() });
       playSound('join');
@@ -411,16 +411,16 @@ export default function MultiplayerHeartChase() {
       showNotification('error', !socket ? 'Not connected to server' : !playerName.trim() ? 'Please enter your name' : 'Please enter a room code');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       // Simulate joining delay for better UX
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      socket.emit('join-heart-room', { 
-        roomId: joinInput.trim().toUpperCase(), 
-        playerName: playerName.trim() 
+
+      socket.emit('join-heart-room', {
+        roomId: joinInput.trim().toUpperCase(),
+        playerName: playerName.trim()
       });
       playSound('join');
       triggerHaptic('medium');
@@ -438,16 +438,16 @@ export default function MultiplayerHeartChase() {
       showNotification('error', 'Unable to start game');
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       // Add countdown for better anticipation
       for (let i = 3; i > 0; i--) {
         await new Promise(resolve => setTimeout(resolve, 800));
         // Could add countdown UI here
       }
-      
+
       socket.emit('start-heart-game', { roomId });
       playSound('gameStart');
       triggerHaptic('heavy');
@@ -468,7 +468,7 @@ export default function MultiplayerHeartChase() {
       const y = rect.top + rect.height / 2;
       document.documentElement.style.setProperty('--mouse-x', `${x}px`);
       document.documentElement.style.setProperty('--mouse-y', `${y}px`);
-      
+
       catchHeart(heart.id);
     }, [heart.id, catchHeart]);
 
@@ -476,11 +476,10 @@ export default function MultiplayerHeartChase() {
       <button
         onClick={handleClick}
         disabled={gameState?.status !== 'playing'}
-        className={`absolute text-4xl sm:text-5xl cursor-pointer transition-all duration-200 hover:scale-125 active:scale-150 ${
-          gameState?.status === 'playing' 
-            ? 'hover:drop-shadow-lg animate-pulse' 
-            : 'cursor-not-allowed opacity-50'
-        }`}
+        className={`absolute text-4xl sm:text-5xl cursor-pointer transition-all duration-200 hover:scale-125 active:scale-150 ${gameState?.status === 'playing'
+          ? 'hover:drop-shadow-lg animate-pulse'
+          : 'cursor-not-allowed opacity-50'
+          }`}
         style={{
           left: `${heart.x}px`,
           top: `${heart.y}px`,
@@ -520,7 +519,7 @@ export default function MultiplayerHeartChase() {
     // Create enhanced particle explosion with more variety
     const particles = ['💖', '💕', '💗', '💓', '✨', '⭐'];
     const particleCount = 12;
-    
+
     for (let i = 0; i < particleCount; i++) {
       const particle = document.createElement('div');
       particle.className = 'fixed text-2xl pointer-events-none z-50';
@@ -528,31 +527,31 @@ export default function MultiplayerHeartChase() {
       particle.style.top = `${y}px`;
       particle.style.transform = 'translate(-50%, -50%)';
       particle.textContent = particles[Math.floor(Math.random() * particles.length)];
-      
+
       const angle = (Math.PI * 2 * i) / particleCount;
       const velocity = 4 + Math.random() * 4;
       let posX = 0;
       let posY = 0;
       let opacity = 1;
       let scale = 1;
-      
+
       const animate = () => {
         posX += Math.cos(angle) * velocity;
         posY += Math.sin(angle) * velocity + 3; // Add gravity
         opacity -= 0.015;
         scale -= 0.01;
-        
+
         particle.style.transform = `translate(calc(-50% + ${posX}px), calc(-50% + ${posY}px)) scale(${scale})`;
         particle.style.opacity = opacity.toString();
         particle.style.filter = `blur(${(1 - opacity) * 2}px)`;
-        
+
         if (opacity > 0) {
           requestAnimationFrame(animate);
         } else {
           particle.remove();
         }
       };
-      
+
       requestAnimationFrame(animate);
       document.body.appendChild(particle);
     }
@@ -582,13 +581,13 @@ export default function MultiplayerHeartChase() {
     console.log(`gameState?.status:`, gameState?.status);
     console.log(`roomId:`, roomId);
     console.log(`socket connected:`, !!socket);
-    
+
     if (socket && roomId && gameState?.status === 'playing') {
       // Create visual feedback at click position
       const heart = gameState.currentHearts.find(h => h.id === heartId);
       console.log(`Found heart:`, heart);
-      console.log(`All current hearts:`, gameState.currentHearts.map(h => ({id: h.id, type: typeof h.id})));
-      
+      console.log(`All current hearts:`, gameState.currentHearts.map(h => ({ id: h.id, type: typeof h.id })));
+
       if (heart) {
         createCatchEffect(heart.x, heart.y, heart.points);
         playSound('catch');
@@ -673,10 +672,10 @@ export default function MultiplayerHeartChase() {
     const notification = document.createElement('div');
     notification.className = 'fixed top-40 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-2xl z-50 pointer-events-none';
     notification.style.animation = 'notificationSlide 2.5s ease-out forwards';
-    
+
     const isMe = playerName === currentPlayer?.name;
     const bgColor = isMe ? 'bg-gradient-to-r from-green-400 to-emerald-400' : 'bg-gradient-to-r from-orange-400 to-yellow-400';
-    
+
     notification.innerHTML = `
       <div class="text-center">
         <div class="text-5xl mb-3 animate-bounce">${heartEmoji}</div>
@@ -687,10 +686,10 @@ export default function MultiplayerHeartChase() {
         <div class="mt-2 text-sm text-gray-600">Points earned!</div>
       </div>
     `;
-    
+
     // Add glow effect
     notification.style.boxShadow = `0 0 30px ${isMe ? 'rgba(34, 197, 94, 0.5)' : 'rgba(251, 146, 60, 0.5)'}`;
-    
+
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 2500);
   }, [currentPlayer]);
@@ -706,7 +705,7 @@ export default function MultiplayerHeartChase() {
 
       switch (e.key) {
         case ' ':
-        // Spacebar to start game (when waiting)
+          // Spacebar to start game (when waiting)
           if (gameState?.status === 'waiting' && gameState.players.length === 2) {
             e.preventDefault();
             startGame();
@@ -757,11 +756,11 @@ export default function MultiplayerHeartChase() {
     // Announce game state changes to screen readers
     if (!gameState) return;
 
-    const announcement = gameState.status === 'waiting' 
+    const announcement = gameState.status === 'waiting'
       ? 'Game waiting for players'
       : gameState.status === 'playing'
-      ? `Game in progress. ${gameState.timeLeft} seconds remaining`
-      : 'Game finished';
+        ? `Game in progress. ${gameState.timeLeft} seconds remaining`
+        : 'Game finished';
 
     // Create or update live region for screen readers
     let liveRegion = document.getElementById('game-announcements');
@@ -773,7 +772,7 @@ export default function MultiplayerHeartChase() {
       liveRegion.className = 'sr-only';
       document.body.appendChild(liveRegion);
     }
-    
+
     liveRegion.textContent = announcement;
   }, [gameState?.status, gameState?.timeLeft]);
 
@@ -784,7 +783,7 @@ export default function MultiplayerHeartChase() {
           <div className="text-6xl mb-4">😔</div>
           <h1 className="text-3xl font-bold text-red-600 mb-4">Connection Failed</h1>
           <p className="text-gray-700 mb-6">{connectionError}</p>
-          
+
           {/* Specific error guidance */}
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
             <p className="text-sm font-semibold text-red-800 mb-2">🔧 Quick Fix:</p>
@@ -803,7 +802,7 @@ export default function MultiplayerHeartChase() {
               </div>
             </div>
           </div>
-          
+
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => window.location.reload()}
@@ -830,8 +829,8 @@ export default function MultiplayerHeartChase() {
           <h1 className="text-3xl font-bold text-pink-600 mb-4">Connecting to Server...</h1>
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
           <p className="text-gray-600 mb-4">Making connection to multiplayer server...</p>
-          <p className="text-sm text-gray-500 mb-4">Server: http://localhost:3001</p>
-          
+          <p className="text-sm text-gray-500 mb-4">Server: {process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}</p>
+
           {/* Add troubleshooting tips */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
             <p className="text-sm font-semibold text-blue-800 mb-2">💡 Troubleshooting:</p>
@@ -842,7 +841,7 @@ export default function MultiplayerHeartChase() {
               <li>• Ensure no firewall is blocking the connection</li>
             </ul>
           </div>
-          
+
           <button
             onClick={startSocketServer}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
@@ -889,7 +888,7 @@ export default function MultiplayerHeartChase() {
                 </p>
               </div>
             )}
-            
+
             {isConnected && (
               <div className="bg-green-100 border-2 border-green-300 rounded-xl p-3 mb-6">
                 <p className="text-sm text-green-800 text-center">
@@ -1023,9 +1022,8 @@ export default function MultiplayerHeartChase() {
         {gameState && (
           <div className="flex justify-around items-center flex-wrap gap-2">
             {gameState.players.map((player, index) => (
-              <div key={player.id} className={`p-2 sm:p-3 rounded-xl transition-all ${
-                player.id === playerId ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 scale-105 shadow-lg' : 'bg-white shadow-md'
-              }`}>
+              <div key={player.id} className={`p-2 sm:p-3 rounded-xl transition-all ${player.id === playerId ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 scale-105 shadow-lg' : 'bg-white shadow-md'
+                }`}>
                 <div className="font-bold text-xs sm:text-sm">{player.name} {player.id === playerId && '(You)'}</div>
                 <div className="text-lg sm:text-2xl font-bold">{player.score}</div>
                 {player.id === playerId && gameState.status === 'playing' && (
@@ -1100,9 +1098,8 @@ export default function MultiplayerHeartChase() {
                       </p>
                       <div className="flex justify-center gap-4 text-sm">
                         {gameState.players.map((player) => (
-                          <div key={player.id} className={`px-3 py-1 rounded-lg ${
-                            player.id === gameStats.leader?.id ? 'bg-yellow-100 border-yellow-300' : 'bg-gray-100 border-gray-300'
-                          }`}>
+                          <div key={player.id} className={`px-3 py-1 rounded-lg ${player.id === gameStats.leader?.id ? 'bg-yellow-100 border-yellow-300' : 'bg-gray-100 border-gray-300'
+                            }`}>
                             <span className="font-semibold">{player.name}</span>
                             <span className="text-gray-600">: {player.score}</span>
                           </div>
@@ -1134,15 +1131,15 @@ export default function MultiplayerHeartChase() {
       {/* Game Area */}
       <div className="pt-40 sm:pt-48 min-h-screen relative">
         {/* Click effect overlay */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: gameState?.status === 'playing' 
+            background: gameState?.status === 'playing'
               ? 'radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 182, 193, 0.1) 0%, transparent 50%)'
               : 'none'
           }}
         />
-        
+
         {/* Hearts */}
         {gameState?.currentHearts.map(heart => (
           <button
@@ -1154,15 +1151,14 @@ export default function MultiplayerHeartChase() {
               const y = rect.top + rect.height / 2;
               document.documentElement.style.setProperty('--mouse-x', `${x}px`);
               document.documentElement.style.setProperty('--mouse-y', `${y}px`);
-              
+
               catchHeart(heart.id);
             }}
             disabled={gameState.status !== 'playing'}
-            className={`absolute text-4xl sm:text-5xl cursor-pointer transition-all duration-200 hover:scale-125 active:scale-150 ${
-              gameState.status === 'playing' 
-                ? 'hover:drop-shadow-lg animate-pulse' 
-                : 'cursor-not-allowed opacity-50'
-            }`}
+            className={`absolute text-4xl sm:text-5xl cursor-pointer transition-all duration-200 hover:scale-125 active:scale-150 ${gameState.status === 'playing'
+              ? 'hover:drop-shadow-lg animate-pulse'
+              : 'cursor-not-allowed opacity-50'
+              }`}
             style={{
               left: `${heart.x}px`,
               top: `${heart.y}px`,
@@ -1209,7 +1205,7 @@ export default function MultiplayerHeartChase() {
               <span className="font-bold text-red-500">{stats.heartsCaught}</span>
             </div>
           </div>
-          
+
           {/* Achievements */}
           <div className="mt-3 pt-2 border-t border-gray-200">
             <h4 className="text-xs font-bold text-gray-700 mb-1">🏆 Achievements</h4>
@@ -1237,13 +1233,12 @@ export default function MultiplayerHeartChase() {
       {/* Notification System */}
       {notification && (
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-4">
-          <div className={`px-6 py-3 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 animate-bounce ${
-            notification.type === 'success' 
-              ? 'bg-green-500 text-white' 
-              : notification.type === 'error' 
-              ? 'bg-red-500 text-white' 
+          <div className={`px-6 py-3 rounded-full shadow-lg backdrop-blur-sm transition-all duration-300 animate-bounce ${notification.type === 'success'
+            ? 'bg-green-500 text-white'
+            : notification.type === 'error'
+              ? 'bg-red-500 text-white'
               : 'bg-blue-500 text-white'
-          }`}>
+            }`}>
             <div className="flex items-center gap-2">
               <span className="text-lg">
                 {notification.type === 'success' ? '✅' : notification.type === 'error' ? '❌' : 'ℹ️'}
@@ -1259,29 +1254,27 @@ export default function MultiplayerHeartChase() {
         {/* Sound Toggle */}
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}
-          className={`px-3 py-2 rounded-full text-xs sm:text-sm transition-colors shadow-lg ${
-            soundEnabled 
-              ? 'bg-green-500 text-white hover:bg-green-600' 
-              : 'bg-gray-400 text-white hover:bg-gray-500'
-          }`}
+          className={`px-3 py-2 rounded-full text-xs sm:text-sm transition-colors shadow-lg ${soundEnabled
+            ? 'bg-green-500 text-white hover:bg-green-600'
+            : 'bg-gray-400 text-white hover:bg-gray-500'
+            }`}
           title="Toggle Sound"
         >
           {soundEnabled ? '🔊' : '🔇'}
         </button>
-        
+
         {/* Haptic Toggle */}
         <button
           onClick={() => setHapticEnabled(!hapticEnabled)}
-          className={`px-3 py-2 rounded-full text-xs sm:text-sm transition-colors shadow-lg ${
-            hapticEnabled 
-              ? 'bg-blue-500 text-white hover:bg-blue-600' 
-              : 'bg-gray-400 text-white hover:bg-gray-500'
-          }`}
+          className={`px-3 py-2 rounded-full text-xs sm:text-sm transition-colors shadow-lg ${hapticEnabled
+            ? 'bg-blue-500 text-white hover:bg-blue-600'
+            : 'bg-gray-400 text-white hover:bg-gray-500'
+            }`}
           title="Toggle Haptic Feedback"
         >
           📳
         </button>
-        
+
         {/* Leave Room */}
         <button
           onClick={() => window.location.reload()}
