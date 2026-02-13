@@ -2,7 +2,10 @@ const { Server } = require('socket.io');
 const http = require('http');
 
 // Create HTTP server
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Socket.IO server is running!');
+});
 
 // Create Socket.IO server
 const io = new Server(server, {
