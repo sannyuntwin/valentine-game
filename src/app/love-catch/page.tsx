@@ -1,10 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 
 interface Player {
   name: string;
   score: number;
+  keys: string[];
+  color: string;
 }
 
 interface Heart {
@@ -22,33 +25,25 @@ interface GameState {
     player1: Player;
     player2: Player;
   };
-  currentPlayer: 'player1' | 'player2';
   timeLeft: number;
-  turnTime: number;
   isPlaying: boolean;
   hearts: Heart[];
-  totalTurns: number;
-  maxTurns: number;
 }
 
-export default function CoupleChase() {
+export default function HeartChase() {
+  const [gameMode, setGameMode] = useState<'local' | 'turn-based' | 'simultaneous'>('simultaneous');
   const [gameState, setGameState] = useState<GameState>({
     players: {
-      player1: { name: 'Player 1', score: 0 },
-      player2: { name: 'Player 2', score: 0 }
+      player1: { name: 'Player 1', score: 0, keys: ['a', 's', 'd', 'f'], color: '#ff6b6b' },
+      player2: { name: 'Player 2', score: 0, keys: ['j', 'k', 'l', ';'], color: '#6b9bff' }
     },
-    currentPlayer: 'player1',
-    timeLeft: 15,
-    turnTime: 15,
+    timeLeft: 60,
     isPlaying: false,
-    hearts: [],
-    totalTurns: 0,
-    maxTurns: 6
+    hearts: []
   });
 
   const [showSetup, setShowSetup] = useState(true);
   const [showGameOver, setShowGameOver] = useState(false);
-  const [showTurnIndicator, setShowTurnIndicator] = useState(false);
   const [player1Name, setPlayer1Name] = useState('');
   const [player2Name, setPlayer2Name] = useState('');
   const [hearts, setHearts] = useState<Array<{ id: number; left: string; top: string; delay: string; duration: string }>>([]);
@@ -80,6 +75,32 @@ export default function CoupleChase() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    // Add keyboard listeners
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (!gameState.isPlaying) return;
+      
+      const key = event.key.toLowerCase();
+      
+      // Check if key belongs to player 1
+      if (gameState.players.player1.keys.includes(key)) {
+        catchHeartWithKey('player1', key);
+      }
+      // Check if key belongs to player 2
+      else if (gameState.players.player2.keys.includes(key)) {
+        catchHeartWithKey('player2', key);
+      }
+    };
+
+    if (gameState.isPlaying) {
+      document.addEventListener('keydown', handleKeyPress);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [gameState.isPlaying, gameState.hearts]);
+
   const startGame = () => {
     const p1Name = player1Name.trim() || 'Player 1';
     const p2Name = player2Name.trim() || 'Player 2';
@@ -87,28 +108,133 @@ export default function CoupleChase() {
     setGameState(prev => ({
       ...prev,
       players: {
-        player1: { name: p1Name, score: 0 },
-        player2: { name: p2Name, score: 0 }
+        ...prev.players,
+        player1: { ...prev.players.player1, name: p1Name, score: 0 },
+        player2: { ...prev.players.player2, name: p2Name, score: 0 }
       },
-      currentPlayer: 'player1',
-      totalTurns: 0
-    }));
-    
-    setShowSetup(false);
-    setShowTurnIndicator(true);
-  };
-
-  const startTurn = () => {
-    setShowTurnIndicator(false);
-    setGameState(prev => ({
-      ...prev,
-      timeLeft: prev.turnTime,
+      timeLeft: 60,
       isPlaying: true,
       hearts: []
     }));
     
+    setShowSetup(false);
     startGameTimer();
     startSpawning();
+  };
+
+  const catchHeartWithKey = (playerId: 'player1' | 'player2', key: string) => {
+    // Find nearest heart to the key's "zone"
+    const player = playerId === 'player1' ? gameState.players.player1 : gameState.players.player2;
+    const keyIndex = player.keys.indexOf(key);
+    
+    // Define zones for each key (quadrants of screen)
+    const zones = [
+      { minX: 0, maxX: window.innerWidth / 2, minY: 180, maxY: window.innerHeight / 2 },
+      { minX: window.innerWidth / 2, maxX: window.innerWidth, minY: 180, maxY: window.innerHeight / 2 },
+      { minX: 0, maxX: window.innerWidth / 2, minY: window.innerHeight / 2, maxY: window.innerHeight },
+      { minX: window.innerWidth / 2, maxX: window.innerWidth, minY: window.innerHeight / 2, maxY: window.innerHeight }
+    ];
+    
+    const zone = zones[keyIndex];
+    let closestHeart = null;
+    let closestDistance = Infinity;
+    
+    // Find closest heart in this zone
+    gameState.hearts.forEach(heartData => {
+      if (heartData.x >= zone.minX && heartData.x <= zone.maxX &&
+          heartData.y >= zone.minY && heartData.y <= zone.maxY) {
+        const centerX = zone.minX + (zone.maxX - zone.minX) / 2;
+        const centerY = zone.minY + (zone.maxY - zone.minY) / 2;
+        const distance = Math.sqrt(
+          Math.pow(heartData.x - centerX, 2) + 
+          Math.pow(heartData.y - centerY, 2)
+        );
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestHeart = heartData;
+        }
+      }
+    });
+    
+    if (closestHeart) {
+      catchHeart(closestHeart, playerId);
+    }
+  };
+
+  const catchHeart = (heartData: Heart, playerId: 'player1' | 'player2') => {
+    if (!gameState.isPlaying) return;
+
+    const points = Math.max(10, Math.floor(heartData.lifetime / 50));
+    
+    setGameState(prev => ({
+      ...prev,
+      players: {
+        ...prev.players,
+        [playerId]: {
+          ...prev.players[playerId],
+          score: prev.players[playerId].score + points
+        }
+      }
+    }));
+
+    // Show score popup
+    showScorePopup(heartData.x + 30, heartData.y + 30, points, gameState.players[playerId].color);
+
+    // Create particle effect
+    createParticles(heartData.x + 30, heartData.y + 30, gameState.players[playerId].color);
+
+    // Remove heart with animation
+    heartData.element.classList.add('animate-spin');
+    heartData.element.style.opacity = '0';
+    heartData.element.style.transform = 'scale(0)';
+    setTimeout(() => removeHeart(heartData), 500);
+  };
+
+  const showScorePopup = (x: number, y: number, points: number, color: string) => {
+    const popup = document.createElement('div');
+    popup.className = 'fixed text-2xl font-bold pointer-events-none z-80';
+    popup.textContent = `+${points}`;
+    popup.style.left = x + 'px';
+    popup.style.top = y + 'px';
+    popup.style.color = color;
+    popup.style.animation = 'scorePopup 1s ease forwards';
+    
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 1000);
+  };
+
+  const removeHeart = (heartData: Heart) => {
+    if (heartData.element.parentNode) {
+      heartData.element.remove();
+    }
+    setGameState(prev => ({
+      ...prev,
+      hearts: prev.hearts.filter(h => h.id !== heartData.id)
+    }));
+  };
+
+  const createParticles = (x: number, y: number, color: string) => {
+    for (let i = 0; i < 8; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'absolute text-2xl pointer-events-none z-50';
+      particle.innerHTML = '💖';
+      particle.style.left = x + 'px';
+      particle.style.top = y + 'px';
+      particle.style.color = color;
+      particle.style.setProperty('--x', (Math.random() - 0.5) * 100 + 'px');
+      particle.style.setProperty('--y', (Math.random() - 0.5) * 100 + 'px');
+      particle.style.transition = 'all 1s ease-out';
+      
+      document.body.appendChild(particle);
+      
+      setTimeout(() => {
+        particle.style.transform = `translate(var(--x), var(--y)) scale(0)`;
+        particle.style.opacity = '0';
+      }, 10);
+      
+      setTimeout(() => particle.remove(), 1000);
+    }
   };
 
   const startGameTimer = () => {
@@ -116,7 +242,7 @@ export default function CoupleChase() {
       setGameState(prev => {
         const newTimeLeft = prev.timeLeft - 1;
         if (newTimeLeft <= 0) {
-          endTurn();
+          endGame();
           return { ...prev, timeLeft: 0 };
         }
         return { ...prev, timeLeft: newTimeLeft };
@@ -130,9 +256,7 @@ export default function CoupleChase() {
 
       spawnHeart();
       
-      // Spawn rate increases over time
-      const spawnDelay = Math.max(300, 800 - (gameState.totalTurns * 50));
-      spawnTimerRef.current = setTimeout(spawn, spawnDelay);
+      spawnTimerRef.current = setTimeout(spawn, 800);
     };
 
     spawn();
@@ -151,18 +275,15 @@ export default function CoupleChase() {
     heart.style.left = startX + 'px';
     heart.style.top = startY + 'px';
     
-    const speed = 3 + (gameState.totalTurns * 0.5); // Speed increases with turns
     const heartData: Heart = {
       id: Date.now() + Math.random(),
       x: startX,
       y: startY,
-      vx: (Math.random() - 0.5) * speed,
-      vy: (Math.random() - 0.5) * speed,
-      lifetime: 4000,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4,
+      lifetime: 5000,
       element: heart
     };
-
-    heart.addEventListener('click', () => catchHeart(heartData));
     
     gameAreaRef.current.appendChild(heart);
     setGameState(prev => ({ ...prev, hearts: [...prev.hearts, heartData] }));
@@ -196,65 +317,7 @@ export default function CoupleChase() {
     }, 50);
   };
 
-  const catchHeart = (heartData: Heart) => {
-    if (!gameState.isPlaying) return;
-
-    const points = Math.max(10, Math.floor(heartData.lifetime / 40));
-    
-    setGameState(prev => ({
-      ...prev,
-      players: {
-        ...prev.players,
-        [prev.currentPlayer]: {
-          ...prev.players[prev.currentPlayer],
-          score: prev.players[prev.currentPlayer].score + points
-        }
-      }
-    }));
-
-    // Create particle effect
-    createParticles(heartData.x + 30, heartData.y + 30);
-
-    // Remove heart with animation
-    heartData.element.classList.add('animate-spin');
-    heartData.element.style.opacity = '0';
-    heartData.element.style.transform = 'scale(0)';
-    setTimeout(() => removeHeart(heartData), 500);
-  };
-
-  const removeHeart = (heartData: Heart) => {
-    if (heartData.element.parentNode) {
-      heartData.element.remove();
-    }
-    setGameState(prev => ({
-      ...prev,
-      hearts: prev.hearts.filter(h => h.id !== heartData.id)
-    }));
-  };
-
-  const createParticles = (x: number, y: number) => {
-    for (let i = 0; i < 8; i++) {
-      const particle = document.createElement('div');
-      particle.className = 'absolute text-2xl pointer-events-none z-50';
-      particle.innerHTML = '💖';
-      particle.style.left = x + 'px';
-      particle.style.top = y + 'px';
-      particle.style.setProperty('--x', (Math.random() - 0.5) * 100 + 'px');
-      particle.style.setProperty('--y', (Math.random() - 0.5) * 100 + 'px');
-      particle.style.transition = 'all 1s ease-out';
-      
-      document.body.appendChild(particle);
-      
-      setTimeout(() => {
-        particle.style.transform = `translate(var(--x), var(--y)) scale(0)`;
-        particle.style.opacity = '0';
-      }, 10);
-      
-      setTimeout(() => particle.remove(), 1000);
-    }
-  };
-
-  const endTurn = () => {
+  const endGame = () => {
     if (gameTimerRef.current) clearInterval(gameTimerRef.current);
     if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
 
@@ -265,47 +328,23 @@ export default function CoupleChase() {
       }
     });
 
-    const newTotalTurns = gameState.totalTurns + 1;
-
-    // Check if game is over
-    if (newTotalTurns >= gameState.maxTurns) {
-      endGame();
-    } else {
-      // Switch players
-      const nextPlayer = gameState.currentPlayer === 'player1' ? 'player2' : 'player1';
-      setGameState(prev => ({
-        ...prev,
-        isPlaying: false,
-        hearts: [],
-        totalTurns: newTotalTurns,
-        currentPlayer: nextPlayer
-      }));
-      setShowTurnIndicator(true);
-    }
-  };
-
-  const endGame = () => {
-    setGameState(prev => ({ ...prev, isPlaying: false }));
+    setGameState(prev => ({ ...prev, isPlaying: false, hearts: [] }));
     setShowGameOver(true);
   };
 
   const resetGame = () => {
     setShowGameOver(false);
     setShowSetup(true);
-    setShowTurnIndicator(false);
-    setGameState({
+    setGameState(prev => ({
+      ...prev,
       players: {
-        player1: { name: 'Player 1', score: 0 },
-        player2: { name: 'Player 2', score: 0 }
+        player1: { ...prev.players.player1, score: 0 },
+        player2: { ...prev.players.player2, score: 0 }
       },
-      currentPlayer: 'player1',
-      timeLeft: 15,
-      turnTime: 15,
+      timeLeft: 60,
       isPlaying: false,
-      hearts: [],
-      totalTurns: 0,
-      maxTurns: 6
-    });
+      hearts: []
+    }));
     setPlayer1Name('');
     setPlayer2Name('');
   };
@@ -392,6 +431,7 @@ export default function CoupleChase() {
   };
 
   const winnerInfo = getWinnerInfo();
+  const isPlayer1Leading = gameState.players.player1.score > gameState.players.player2.score;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-400 via-purple-500 to-indigo-500 relative overflow-hidden">
@@ -416,22 +456,22 @@ export default function CoupleChase() {
       {/* Game Header */}
       <div className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm p-4 shadow-lg z-100">
         <div className="text-center text-2xl font-bold text-pink-600 mb-2">
-          💕 Couple's Valentine Chase! 💕
+          💕 Love Catch! 💕
         </div>
         <div className="flex justify-around items-center">
-          <div className={`p-3 rounded-xl transition-all ${gameState.currentPlayer === 'player1' ? 'bg-gradient-to-r from-pink-500 to-red-500 text-white scale-105' : 'bg-white'}`}>
+          <div className={`p-3 rounded-xl transition-all ${isPlayer1Leading ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 scale-105' : 'bg-white'}`}>
             <div className="font-bold">{gameState.players.player1.name}</div>
             <div className="text-2xl font-bold">{gameState.players.player1.score}</div>
+            <div className="text-xs text-gray-600">Keys: A/S/D/F</div>
           </div>
           <div className="text-center">
-            <div className="text-sm text-gray-600">Current Turn</div>
-            <div className="text-lg font-bold">
-              {gameState.isPlaying ? `${gameState.players[gameState.currentPlayer].name} (${gameState.timeLeft}s)` : 'Get Ready!'}
-            </div>
+            <div className="text-sm text-gray-600">Time</div>
+            <div className="text-2xl font-bold">{gameState.timeLeft}s</div>
           </div>
-          <div className={`p-3 rounded-xl transition-all ${gameState.currentPlayer === 'player2' ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white scale-105' : 'bg-white'}`}>
+          <div className={`p-3 rounded-xl transition-all ${!isPlayer1Leading && gameState.players.player2.score > gameState.players.player1.score ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 scale-105' : 'bg-white'}`}>
             <div className="font-bold">{gameState.players.player2.name}</div>
             <div className="text-2xl font-bold">{gameState.players.player2.score}</div>
+            <div className="text-xs text-gray-600">Keys: J/K/L/;</div>
           </div>
         </div>
       </div>
@@ -439,7 +479,7 @@ export default function CoupleChase() {
       {/* Timer Bar */}
       <div 
         className="fixed bottom-0 left-0 h-2 bg-gradient-to-r from-green-400 via-yellow-400 to-red-400 transition-all duration-100 z-100"
-        style={{ width: `${(gameState.timeLeft / gameState.turnTime) * 100}%` }}
+        style={{ width: `${(gameState.timeLeft / 60) * 100}%` }}
       />
 
       {/* Game Area */}
@@ -450,13 +490,46 @@ export default function CoupleChase() {
       {/* Setup Screen */}
       {showSetup && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-200">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-white rounded-3xl p-8 max-w-lg w-full mx-4 shadow-2xl">
             <h2 className="text-3xl font-bold text-pink-600 text-center mb-4">
-              💕 Couple's Valentine Setup 💕
+              💕 Love Catch! 💕
             </h2>
             <p className="text-gray-600 text-center mb-6">
-              Enter your names and get ready for a romantic competition! The winner gets a kiss from the loser! 😘
+              Catch falling hearts of love! Choose your game mode and compete for the highest score!
             </p>
+            
+            {/* Game Mode Selection */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-700 mb-3">Select Game Mode:</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setGameMode('local')}
+                  className={`p-3 rounded-xl text-sm font-medium transition-all ${
+                    gameMode === 'local' 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white scale-105' 
+                      : 'bg-gray-100 hover:bg-gray-200'
+                  }`}
+                >
+                  � Local Multiplayer
+                </button>
+                <button
+                  onClick={() => window.location.href = '/love-catch/multiplayer'}
+                  className="p-3 rounded-xl text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:scale-105 transition-all"
+                >
+                  🌐 Online Multiplayer
+                </button>
+              </div>
+            </div>
+            
+            {/* Mode-specific instructions */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              {gameMode === 'local' && (
+                <div>
+                  <h4 className="font-semibold text-gray-700 mb-2">� Local Multiplayer</h4>
+                  <p className="text-sm text-gray-600">Play on the same computer! Player 1 uses A/S/D/F, Player 2 uses J/K/L/; keys.</p>
+                </div>
+              )}
+            </div>
             <div className="space-y-4 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Player 1 Name:</label>
@@ -481,28 +554,17 @@ export default function CoupleChase() {
                 />
               </div>
             </div>
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <h4 className="font-bold text-gray-700 mb-2">🎮 Controls:</h4>
+              <p className="text-sm text-gray-600 mb-1"><strong>Player 1:</strong> Use keys A, S, D, F to catch hearts</p>
+              <p className="text-sm text-gray-600 mb-1"><strong>Player 2:</strong> Use keys J, K, L, ; to catch hearts</p>
+              <p className="text-sm text-gray-600"><strong>Power-ups:</strong> ⭐=Double Points, 🚀=Speed Boost, 💎=Bonus Time</p>
+            </div>
             <button
               onClick={startGame}
               className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-red-500 text-white rounded-full font-bold hover:scale-105 transition-transform"
             >
               Start Game
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Turn Indicator */}
-      {showTurnIndicator && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-180">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 shadow-2xl text-center">
-            <h3 className="text-2xl font-bold text-pink-600 mb-4">
-              {gameState.players[gameState.currentPlayer].name}'s Turn!
-            </h3>
-            <button
-              onClick={startTurn}
-              className="px-8 py-3 bg-gradient-to-r from-pink-500 to-red-500 text-white rounded-full font-bold hover:scale-105 transition-transform"
-            >
-              Start Turn
             </button>
           </div>
         </div>
@@ -550,6 +612,12 @@ export default function CoupleChase() {
           0% { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 0; }
           50% { transform: translate(-50%, -50%) scale(1.5) rotate(180deg); opacity: 1; }
           100% { transform: translate(-50%, -50%) scale(1) rotate(360deg); opacity: 0; }
+        }
+        
+        @keyframes scorePopup {
+          0% { transform: translateY(0) scale(0.5); opacity: 0; }
+          50% { transform: translateY(-20px) scale(1.2); opacity: 1; }
+          100% { transform: translateY(-40px) scale(1); opacity: 0; }
         }
       `}</style>
     </div>
