@@ -84,6 +84,16 @@ export default function Home() {
       gradient: "from-green-400 to-emerald-500",
       borderColor: "border-green-200",
       hoverColor: "group-hover:text-green-700"
+    },
+    {
+      id: "love-charades",
+      emoji: "🎭",
+      title: "Love Charades",
+      description: "Give hints and guess your partner's card! One gets a secret card, the other guesses from romantic clues!",
+      color: "purple",
+      gradient: "from-purple-400 to-indigo-500",
+      borderColor: "border-purple-200",
+      hoverColor: "group-hover:text-purple-700"
     }
   ];
 
