@@ -776,82 +776,8 @@ export default function MultiplayerHeartChase() {
     liveRegion.textContent = announcement;
   }, [gameState?.status, gameState?.timeLeft]);
 
-  if (!isConnected && connectionError) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-300 flex items-center justify-center">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 text-center max-w-md">
-          <div className="text-6xl mb-4">😔</div>
-          <h1 className="text-3xl font-bold text-red-600 mb-4">Connection Failed</h1>
-          <p className="text-gray-700 mb-6">{connectionError}</p>
 
-          {/* Specific error guidance */}
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left">
-            <p className="text-sm font-semibold text-red-800 mb-2">🔧 Quick Fix:</p>
-            <div className="text-xs text-red-700 space-y-2">
-              <div>
-                <strong>1. Open Terminal</strong> in your project folder
-              </div>
-              <div>
-                <strong>2. Run:</strong> <code className="bg-red-100 px-2 py-1 rounded block mt-1">node socket-server.js</code>
-              </div>
-              <div>
-                <strong>3. Look for:</strong> <code className="bg-red-100 px-1 rounded">"Socket.IO server running on port 3001"</code>
-              </div>
-              <div>
-                <strong>4. Refresh</strong> this page
-              </div>
-            </div>
-          </div>
 
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
-            >
-              🔄 Refresh Page
-            </button>
-            <button
-              onClick={startSocketServer}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              📋 Server Help
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isConnected && !connectionError) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-300 flex items-center justify-center">
-        <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 text-center max-w-md">
-          <h1 className="text-3xl font-bold text-pink-600 mb-4">Connecting to Server...</h1>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 mb-4">Making connection to multiplayer server...</p>
-          <p className="text-sm text-gray-500 mb-4">Server: {process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}</p>
-
-          {/* Add troubleshooting tips */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-left">
-            <p className="text-sm font-semibold text-blue-800 mb-2">💡 Troubleshooting:</p>
-            <ul className="text-xs text-blue-700 space-y-1">
-              <li>• Make sure the socket server is running</li>
-              <li>• Run: <code className="bg-blue-100 px-1 rounded">node socket-server.js</code></li>
-              <li>• Check that port 3001 is available</li>
-              <li>• Ensure no firewall is blocking the connection</li>
-            </ul>
-          </div>
-
-          <button
-            onClick={startSocketServer}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-          >
-            📋 How to Start Server
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (!roomId) {
     return (
@@ -879,6 +805,14 @@ export default function MultiplayerHeartChase() {
             <h1 className="text-4xl font-bold text-pink-600 text-center mb-8">
               💕 Multiplayer Love Catch 💖
             </h1>
+
+            {connectionError && (
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r" role="alert">
+                <p className="font-bold">Connection Error</p>
+                <p>{connectionError}</p>
+                <p className="text-xs mt-1">Server URL: {process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}</p>
+              </div>
+            )}
 
             {/* Connection Status */}
             {connectionError && (
@@ -914,7 +848,7 @@ export default function MultiplayerHeartChase() {
                 <h2 className="text-xl font-semibold text-gray-700 mb-4">Create New Room</h2>
                 <button
                   onClick={createRoom}
-                  disabled={!playerName.trim() || isLoading}
+                  disabled={!playerName.trim() || isLoading || !isConnected || !!connectionError}
                   className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full font-bold hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 relative overflow-hidden"
                 >
                   {isLoading ? (
@@ -938,41 +872,43 @@ export default function MultiplayerHeartChase() {
 
               <div>
                 <h2 className="text-xl font-semibold text-gray-700 mb-4">Join Existing Room</h2>
-                <input
-                  type="text"
-                  value={joinInput}
-                  onChange={(e) => setJoinInput(e.target.value)}
-                  placeholder="Enter Room Code"
-                  className="w-full px-4 py-2 border-2 border-pink-300 rounded-lg text-center font-mono text-lg focus:outline-none focus:border-pink-400 mb-3 bg-white text-gray-800 placeholder-gray-500 transition-colors duration-200"
-                  maxLength={6}
-                  disabled={isLoading}
-                />
-                <button
-                  onClick={joinRoom}
-                  disabled={!playerName.trim() || !joinInput.trim() || isLoading}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-full font-bold hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 relative overflow-hidden"
-                >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Joining...
-                    </span>
-                  ) : (
-                    '🔗 Join Room'
-                  )}
-                  {isLoading && (
-                    <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={joinInput}
+                    onChange={(e) => setJoinInput(e.target.value)}
+                    placeholder="Enter Room Code"
+                    className="flex-1 px-4 py-3 border-2 border-pink-200 rounded-xl font-mono text-lg focus:outline-none focus:border-pink-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    maxLength={6}
+                    disabled={!isConnected || !!connectionError || isLoading}
+                  />
+                  <button
+                    onClick={joinRoom}
+                    disabled={!playerName.trim() || !joinInput.trim() || isLoading || !isConnected || !!connectionError}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 relative overflow-hidden"
+                  >
+                    {isLoading ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Joining...
+                      </span>
+                    ) : (
+                      '🔗 Join'
+                    )}
+                    {isLoading && (
+                      <div className="absolute inset-0 bg-white opacity-20 animate-pulse"></div>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-8 text-center text-sm text-gray-600">
-              <p>Share the room code with your Valentine! 💕</p>
-              <p className="mt-2">Catch hearts together from anywhere! 🌍</p>
+              <div className="mt-8 text-center text-sm text-gray-600">
+                <p>Share the room code with your Valentine! 💕</p>
+                <p className="mt-2">Catch hearts together from anywhere! 🌍</p>
+              </div>
             </div>
           </div>
         </div>

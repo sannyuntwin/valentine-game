@@ -154,7 +154,19 @@ export default function MultiplayerTicTacToe() {
       gameState.currentTurn === playerSymbol;
   };
 
-  if (!isConnected) {
+  const [connectionError, setConnectionError] = useState(false);
+
+  useEffect(() => {
+    // Timeout to stop showing loading screen if connection fails
+    const timer = setTimeout(() => {
+      if (!isConnected) {
+        setConnectionError(true);
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [isConnected]);
+
+  if (!isConnected && !connectionError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-300 flex items-center justify-center">
         <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 text-center">
@@ -192,6 +204,14 @@ export default function MultiplayerTicTacToe() {
               💕 Multiplayer Tic Tac Toe 💖
             </h1>
 
+            {connectionError && (
+              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r" role="alert">
+                <p className="font-bold">Connection Error</p>
+                <p>Could not connect to the game server. You can still look around, but multiplayer features are disabled.</p>
+                <p className="text-xs mt-1">Server URL: {process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}</p>
+              </div>
+            )}
+
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Your Name:</label>
@@ -201,7 +221,8 @@ export default function MultiplayerTicTacToe() {
                   onChange={(e) => setPlayerName(e.target.value)}
                   placeholder="Enter your name..."
                   maxLength={15}
-                  className="w-full px-4 py-2 border-2 border-pink-300 rounded-lg focus:outline-none focus:border-pink-500 bg-white text-gray-800 placeholder-gray-500"
+                  disabled={!isConnected}
+                  className="w-full px-4 py-2 border-2 border-pink-300 rounded-lg focus:outline-none focus:border-pink-500 bg-white text-gray-800 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -209,7 +230,7 @@ export default function MultiplayerTicTacToe() {
                 <h2 className="text-xl font-semibold text-gray-700 mb-4">Create New Room</h2>
                 <button
                   onClick={createRoom}
-                  disabled={!playerName.trim()}
+                  disabled={!playerName.trim() || !isConnected}
                   className="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full font-bold hover:scale-105 transition-transform shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   🎮 Create Room
@@ -226,19 +247,21 @@ export default function MultiplayerTicTacToe() {
                   onChange={(e) => setPlayerName(e.target.value)}
                   placeholder="Enter your name..."
                   maxLength={15}
-                  className="w-full px-4 py-2 border-2 border-pink-300 rounded-lg focus:outline-none focus:border-pink-500 bg-white text-gray-800 placeholder-gray-500"
+                  disabled={!isConnected}
+                  className="w-full px-4 py-2 border-2 border-pink-300 rounded-lg focus:outline-none focus:border-pink-500 bg-white text-gray-800 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <input
                   type="text"
                   value={joinInput}
                   onChange={(e) => setJoinInput(e.target.value)}
                   placeholder="Enter Room Code"
-                  className="w-full px-4 py-2 border-2 border-pink-200 rounded-full text-center font-mono text-lg focus:outline-none focus:border-pink-400 mb-3 bg-white text-gray-800 placeholder-gray-500"
+                  className="w-full px-4 py-2 border-2 border-pink-200 rounded-full text-center font-mono text-lg focus:outline-none focus:border-pink-400 mb-3 bg-white text-gray-800 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   maxLength={6}
+                  disabled={!isConnected}
                 />
                 <button
                   onClick={joinRoom}
-                  disabled={!playerName.trim() || !joinInput.trim()}
+                  disabled={!playerName.trim() || !joinInput.trim() || !isConnected}
                   className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-full font-bold hover:scale-105 transition-transform shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   🔗 Join Room
