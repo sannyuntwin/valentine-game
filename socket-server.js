@@ -64,17 +64,17 @@ io.on('connection', (socket) => {
       winner: null,
       winningLine: []
     };
-    
+
     games.set(roomId, game);
     socket.join(roomId);
     socket.emit('room-created', { roomId, playerSymbol: 'X' });
-    
+
     console.log(`Room ${roomId} created by ${socket.id}`);
   });
 
   socket.on('join-room', (roomId) => {
     const game = games.get(roomId);
-    
+
     if (!game) {
       socket.emit('error', 'Room not found');
       return;
@@ -88,20 +88,20 @@ io.on('connection', (socket) => {
     game.players.push({ id: socket.id, symbol: 'O' });
     game.status = 'playing';
     socket.join(roomId);
-    
+
     // Notify both players
     socket.emit('room-joined', { roomId, playerSymbol: 'O' });
     socket.to(roomId).emit('player-joined', { playerSymbol: 'O' });
-    
+
     // Send current game state to both players
     io.to(roomId).emit('game-state', game);
-    
+
     console.log(`Player ${socket.id} joined room ${roomId}`);
   });
 
   socket.on('make-move', ({ roomId, index }) => {
     const game = games.get(roomId);
-    
+
     if (!game) {
       socket.emit('error', 'Game not found');
       return;
@@ -114,7 +114,7 @@ io.on('connection', (socket) => {
 
     // Make move
     game.board[index] = game.currentTurn;
-    
+
     // Check for winner
     const result = checkWinner(game.board);
     if (result) {
@@ -128,13 +128,13 @@ io.on('connection', (socket) => {
 
     // Broadcast updated game state
     io.to(roomId).emit('game-state', game);
-    
+
     console.log(`Move made in room ${roomId}: ${index} by ${socket.id}`);
   });
 
   socket.on('reset-game', (roomId) => {
     const game = games.get(roomId);
-    
+
     if (!game) return;
 
     game.board = Array(9).fill(null);
@@ -144,7 +144,7 @@ io.on('connection', (socket) => {
     game.winningLine = [];
 
     io.to(roomId).emit('game-state', game);
-    
+
     console.log(`Game reset in room ${roomId}`);
   });
 
@@ -159,17 +159,17 @@ io.on('connection', (socket) => {
       status: 'waiting',
       gameMode: 'simultaneous'
     };
-    
+
     heartGames.set(roomId, game);
     socket.join(roomId);
     socket.emit('heart-room-created', { roomId, playerInfo: game.players[0] });
-    
+
     console.log(`Heart room ${roomId} created by ${socket.id} (${playerName})`);
   });
 
   socket.on('join-heart-room', ({ roomId, playerName }) => {
     const game = heartGames.get(roomId);
-    
+
     if (!game) {
       socket.emit('error', 'Heart room not found');
       return;
@@ -183,20 +183,20 @@ io.on('connection', (socket) => {
     const newPlayer = { id: socket.id, name: playerName, score: 0, color: '#6b9bff' };
     game.players.push(newPlayer);
     socket.join(roomId);
-    
+
     // Notify both players
     socket.emit('heart-room-joined', { roomId, playerInfo: newPlayer });
     socket.to(roomId).emit('player-joined-heart', newPlayer);
-    
+
     // Send current game state to both players
     io.to(roomId).emit('heart-game-state', game);
-    
+
     console.log(`Player ${socket.id} (${playerName}) joined heart room ${roomId}`);
   });
 
   socket.on('start-heart-game', ({ roomId }) => {
     const game = heartGames.get(roomId);
-    
+
     if (!game) {
       socket.emit('error', 'Heart game not found');
       return;
@@ -209,7 +209,7 @@ io.on('connection', (socket) => {
 
     // Reset heart ID counter for new game
     heartIdCounter = 0;
-    
+
     game.status = 'playing';
     game.timeLeft = 60;
     game.currentHearts = [];
@@ -252,7 +252,7 @@ io.on('connection', (socket) => {
       }
 
       game.timeLeft--;
-      
+
       if (game.timeLeft <= 0) {
         game.status = 'finished';
         clearInterval(spawnInterval);
@@ -269,9 +269,9 @@ io.on('connection', (socket) => {
 
   socket.on('catch-heart', ({ roomId, heartId }) => {
     console.log(`Received catch-heart event: roomId=${roomId}, heartId=${heartId}, socketId=${socket.id}`);
-    
+
     const game = heartGames.get(roomId);
-    
+
     if (!game) {
       console.log(`Heart game not found for room ${roomId}`);
       socket.emit('error', 'Heart game not found');
@@ -295,10 +295,10 @@ io.on('connection', (socket) => {
 
     const heart = game.currentHearts[heartIndex];
     console.log(`Found heart ${heartId}: ${heart.emoji}, points: ${heart.points}`);
-    
+
     // Remove heart immediately so no one else can catch it
     game.currentHearts.splice(heartIndex, 1);
-    
+
     // Update player score
     const player = game.players.find(p => p.id === socket.id);
     if (player) {
@@ -309,23 +309,23 @@ io.on('connection', (socket) => {
     }
 
     // Notify all players who caught the heart and for how many points
-    io.to(roomId).emit('heart-caught', { 
-      playerId: socket.id, 
-      heartId, 
+    io.to(roomId).emit('heart-caught', {
+      playerId: socket.id,
+      heartId,
       points: heart.points,
       playerName: player?.name || 'Unknown',
       heartEmoji: heart.emoji
     });
-    
+
     // Send updated game state
     io.to(roomId).emit('heart-game-state', game);
-    
+
     console.log(`Player ${socket.id} (${player?.name}) caught heart ${heartId} for ${heart.points} points`);
   });
 
   socket.on('reset-heart-game', ({ roomId }) => {
     const game = heartGames.get(roomId);
-    
+
     if (!game) return;
 
     game.players.forEach(p => p.score = 0);
@@ -334,21 +334,21 @@ io.on('connection', (socket) => {
     game.currentHearts = [];
 
     io.to(roomId).emit('heart-game-state', game);
-    
+
     console.log(`Heart game reset in room ${roomId}`);
   });
 
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    
+
     // Clean up Tic Tac Toe games
     for (const [roomId, game] of games.entries()) {
       const playerIndex = game.players.findIndex(p => p.id === socket.id);
-      
+
       if (playerIndex !== -1) {
         game.players.splice(playerIndex, 1);
-        
+
         if (game.players.length === 0) {
           // Delete empty games
           games.delete(roomId);
@@ -367,10 +367,10 @@ io.on('connection', (socket) => {
     // Clean up Heart Chase games
     for (const [roomId, game] of heartGames.entries()) {
       const playerIndex = game.players.findIndex(p => p.id === socket.id);
-      
+
       if (playerIndex !== -1) {
         game.players.splice(playerIndex, 1);
-        
+
         if (game.players.length === 0) {
           // Delete empty games
           heartGames.delete(roomId);
@@ -387,7 +387,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.SOCKET_PORT || 3001;
+const PORT = process.env.PORT || process.env.SOCKET_PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Socket.IO server running on port ${PORT}`);
 });
