@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import Head from 'next/head';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -90,21 +89,6 @@ export default function Home() {
 
   return (
     <>
-      <Head>
-        <title>Valentine's Day Games - Fun Romantic Games for Couples 💕</title>
-        <meta name="description" content="Play fun Valentine's Day games together! Sneaky Valentine, Love Catch, and Tic Tac Toe - perfect for couples looking for romantic fun and competition." />
-        <meta name="keywords" content="Valentine's Day games, romantic games, couple games, love games, multiplayer games, Valentine games, fun games, couple activities" />
-        <meta property="og:title" content="Valentine's Day Games - Fun Romantic Games for Couples 💕" />
-        <meta property="og:description" content="Play fun Valentine's Day games together! Sneaky Valentine, Love Catch, and Tic Tac Toe - perfect for couples looking for romantic fun and competition." />
-        <meta property="og:image" content="https://your-valentine-game.vercel.app/og-image.jpg" />
-        <meta property="og:url" content="https://your-valentine-game.vercel.app" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Valentine's Day Games - Fun Romantic Games for Couples 💕" />
-        <meta name="twitter:description" content="Play fun Valentine's Day games together! Sneaky Valentine, Love Catch, and Tic Tac Toe - perfect for couples looking for romantic fun and competition." />
-        <meta name="twitter:image" content="https://your-valentine-game.vercel.app/twitter-image.jpg" />
-        <link rel="canonical" href="https://your-valentine-game.vercel.app" />
-      </Head>
       <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
