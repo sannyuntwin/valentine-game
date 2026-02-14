@@ -6,14 +6,23 @@ import { useAlert } from '@/hooks/useAlert';
 import Alert from '@/components/Alert';
 import { io, Socket } from 'socket.io-client';
 
-// Chess piece types with romantic emojis
-const PIECES = {
-  'K': { emoji: '👑', name: 'King' },
+// Chess piece types with romantic emojis - different colors for each side
+const WHITE_PIECES = {
+  'K': { emoji: '🤍', name: 'King' },
   'Q': { emoji: '👸', name: 'Queen' },
   'R': { emoji: '🏰', name: 'Rook' },
   'B': { emoji: '💝', name: 'Bishop' },
   'N': { emoji: '🦢', name: 'Knight' },
   'P': { emoji: '💕', name: 'Pawn' }
+};
+
+const BLACK_PIECES = {
+  'K': { emoji: '🖤', name: 'King' },
+  'Q': { emoji: '👑', name: 'Queen' },
+  'R': { emoji: '�', name: 'Rook' },
+  'B': { emoji: '🎁', name: 'Bishop' },
+  'N': { emoji: '�', name: 'Knight' },
+  'P': { emoji: '�', name: 'Pawn' }
 };
 
 interface Player {
@@ -43,6 +52,7 @@ interface Position {
 }
 
 export default function ChessMultiplayer() {
+  const { showAlert, alert, hideAlert } = useAlert();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<'menu' | 'room' | 'playing'>('menu');
   const [roomCode, setRoomCode] = useState('');
@@ -127,13 +137,13 @@ export default function ChessMultiplayer() {
     });
 
     newSocket.on('player-disconnected', () => {
-      alert('Your partner disconnected!');
+      showAlert('Your partner disconnected!', 'warning');
       setGameState('menu');
       setGame(null);
     });
 
     newSocket.on('error', (message) => {
-      alert(message);
+      showAlert(message, 'error');
     });
 
     return () => {
@@ -236,7 +246,7 @@ export default function ChessMultiplayer() {
 
     // Check if it's my turn
     if (game.currentTurn !== myColor) {
-      alert("It's not your turn!");
+      showAlert("It's not your turn!", 'warning');
       return;
     }
 
@@ -304,7 +314,7 @@ export default function ChessMultiplayer() {
 
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomCode);
-    alert('Room code copied to clipboard!');
+    showAlert('Room code copied to clipboard!', 'success');
   };
 
   const getSquareColor = (row: number, col: number) => {
@@ -317,10 +327,12 @@ export default function ChessMultiplayer() {
     return isLight ? 'bg-pink-100' : 'bg-purple-200';
   };
 
-  const getPieceDisplay = (piece: string | null) => {
-    if (!piece) return null;
-    const pieceInfo = PIECES[piece.toUpperCase() as keyof typeof PIECES];
-    return pieceInfo ? pieceInfo.emoji : piece;
+  const getPieceDisplay = (piece: string) => {
+    if (!piece) return '';
+    const isWhite = piece === piece.toUpperCase();
+    const pieces = isWhite ? WHITE_PIECES : BLACK_PIECES;
+    const pieceType = piece.toUpperCase();
+    return pieces[pieceType as keyof typeof pieces]?.emoji || piece;
   };
 
   if (!isConnected) {
@@ -337,78 +349,139 @@ export default function ChessMultiplayer() {
 
   if (gameState === 'menu') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-          <div className="text-center mb-8">
-            <div className="text-6xl mb-4">♟️</div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-              Love Chess
-            </h1>
-            <p className="text-gray-600">Multiplayer mode - Play with your partner!</p>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Name
-              </label>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-400 transition-colors"
-                placeholder="Enter your name"
-              />
+      <>
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 p-4">
+          <div className="max-w-6xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                ♟️ Love Chess
+              </h1>
+              <p className="text-gray-600">Play chess with your Valentine! 💕</p>
             </div>
-            
-            <div className="border-t pt-4">
-              <button
-                onClick={createRoom}
-                disabled={!playerName.trim()}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-              >
-                Create Room ♟️
-              </button>
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">OR</span>
+
+            {/* Game content */}
+            {gameState === 'menu' && (
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-8 max-w-md mx-auto">
+                <h2 className="text-2xl font-bold text-center mb-6 text-purple-700">Multiplayer Chess</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                    <input
+                      type="text"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="Enter your name"
+                    />
+                  </div>
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={createRoom}
+                      className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105"
+                    >
+                      Create Room
+                    </button>
+                    <button
+                      onClick={joinRoom}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all transform hover:scale-105"
+                    >
+                      Join Room
+                    </button>
+                  </div>
                 </div>
               </div>
-              
-              <div className="mt-4 space-y-3">
-                <input
-                  type="text"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-400 transition-colors text-center font-mono text-lg"
-                  placeholder="Enter room code"
-                  maxLength={6}
-                />
-                <button
-                  onClick={joinRoom}
-                  disabled={!playerName.trim() || !roomCode.trim()}
-                  className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-xl font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Join Room 🎮
-                </button>
+            )}
+
+            {gameState === 'room' && (
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-8 max-w-md mx-auto">
+                <h2 className="text-2xl font-bold text-center mb-6 text-purple-700">Room Created</h2>
+                <div className="text-center space-y-4">
+                  <div className="bg-purple-100 p-4 rounded-lg">
+                    <p className="text-lg font-semibold text-purple-800">Room Code:</p>
+                    <p className="text-3xl font-bold text-purple-900">{roomCode}</p>
+                  </div>
+                  <button
+                    onClick={copyRoomCode}
+                    className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105"
+                  >
+                    Copy Room Code
+                  </button>
+                  <button
+                    onClick={startGame}
+                    className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white px-6 py-3 rounded-lg hover:from-pink-600 hover:to-red-600 transition-all transform hover:scale-105"
+                  >
+                    Start Game
+                  </button>
+                  <button
+                    onClick={leaveRoom}
+                    className="w-full bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-all transform hover:scale-105"
+                  >
+                    Leave Room
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-          
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => router.push('/')}
-              className="text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              ← Back to Games
-            </button>
+            )}
+
+            {gameState === 'playing' && game && (
+              <div>
+                {/* Game info */}
+                <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 mb-6 text-center">
+                  <div className="flex justify-between items-center">
+                    <div className="text-lg font-semibold">
+                      {game.currentTurn === 'white' ? '⚪ White\'s Turn' : '⚫ Black\'s Turn'}
+                    </div>
+                    <div className="text-lg">
+                      You are: {myColor === 'white' ? '⚪ White' : '⚫ Black'}
+                    </div>
+                    <button
+                      onClick={resetGame}
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all"
+                    >
+                      Reset Game
+                    </button>
+                  </div>
+                </div>
+
+                {/* Chess board */}
+                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6">
+                  <div className="grid grid-cols-8 gap-0 border-4 border-purple-800 max-w-2xl mx-auto">
+                    {game.board.map((row, rowIndex) => (
+                      <div key={rowIndex} className="flex">
+                        {row.map((piece, colIndex) => (
+                          <div
+                            key={colIndex}
+                            onClick={() => handleSquareClick(rowIndex, colIndex)}
+                            className={`w-16 h-16 border border-gray-400 flex items-center justify-center text-2xl cursor-pointer hover:bg-purple-200 transition-colors ${getSquareColor(rowIndex, colIndex)}`}
+                          >
+                            {piece && <span>{getPieceDisplay(piece)}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="text-center mt-6">
+                  <button
+                    onClick={leaveRoom}
+                    className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-all"
+                  >
+                    Leave Game
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+        {alert.isVisible && (
+          <Alert
+            message={alert.message}
+            type={alert.type}
+            onClose={hideAlert}
+          />
+        )}
+      </>
     );
   }
 
