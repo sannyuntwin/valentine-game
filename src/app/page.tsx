@@ -94,6 +94,16 @@ export default function Home() {
       gradient: "from-purple-400 to-indigo-500",
       borderColor: "border-purple-200",
       hoverColor: "group-hover:text-purple-700"
+    },
+    {
+      id: "chess",
+      emoji: "♟️",
+      title: "Love Chess",
+      description: "Romantic chess game with heart pieces! Strategic battles between love and passion. Checkmate your partner's heart!",
+      color: "blue",
+      gradient: "from-blue-400 to-purple-500",
+      borderColor: "border-blue-200",
+      hoverColor: "group-hover:text-blue-700"
     }
   ];
 

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
+import { useAlert, AlertProvider } from '@/hooks/useAlert';
+import Alert from '@/components/Alert';
 
 interface Player {
   id: string;
@@ -22,6 +24,23 @@ interface Game {
 }
 
 export default function LoveCharadesMultiplayer() {
+  const { showAlert, alert, hideAlert } = useAlert();
+  
+  return (
+    <>
+      <LoveCharadesMultiplayerContent showAlert={showAlert} />
+      {alert.isVisible && (
+        <Alert
+          message={alert.message}
+          type={alert.type}
+          onClose={hideAlert}
+        />
+      )}
+    </>
+  );
+}
+
+function LoveCharadesMultiplayerContent({ showAlert }: { showAlert: (message: string, type?: 'success' | 'error' | 'info' | 'warning') => void }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<'menu' | 'room' | 'playing'>('menu');
   const [roomCode, setRoomCode] = useState('');
@@ -102,13 +121,13 @@ export default function LoveCharadesMultiplayer() {
     });
 
     newSocket.on('player-disconnected', () => {
-      alert('Your partner disconnected!');
+      showAlert('Your partner disconnected!', 'warning');
       setGameState('menu');
       setGame(null);
     });
 
     newSocket.on('error', (message) => {
-      alert(message);
+      showAlert(message, 'error');
     });
 
     return () => {
@@ -151,7 +170,7 @@ export default function LoveCharadesMultiplayer() {
 
   const copyRoomCode = () => {
     navigator.clipboard.writeText(roomCode);
-    alert('Room code copied to clipboard!');
+    showAlert('Room code copied to clipboard!', 'success');
   };
 
   if (!isConnected) {

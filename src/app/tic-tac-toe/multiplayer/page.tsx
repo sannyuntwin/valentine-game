@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useAlert } from '@/hooks/useAlert';
+import Alert from '@/components/Alert';
 import { io, Socket } from 'socket.io-client';
 
 type Player = 'X' | 'O' | null;
@@ -16,6 +18,7 @@ type GameState = {
 };
 
 export default function MultiplayerTicTacToe() {
+  const { showAlert, alert, hideAlert } = useAlert();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [playerSymbol, setPlayerSymbol] = useState<Player>(null);
@@ -107,7 +110,7 @@ export default function MultiplayerTicTacToe() {
     });
 
     newSocket.on('error', (message: string) => {
-      alert(message);
+      showAlert(message, 'error');
     });
 
     return () => {
@@ -282,10 +285,60 @@ export default function MultiplayerTicTacToe() {
             50% { transform: translateY(-20px) rotate(10deg); }
           }
         `}</style>
-      </div>
-    );
   }
+};
 
+const makeMove = (index: number) => {
+  if (socket && gameState && roomId) {
+    socket.emit('make-move', { roomId, index });
+  }
+};
+
+const resetGame = () => {
+  if (socket && roomId) {
+    socket.emit('reset-game', roomId);
+  }
+};
+
+const getCellContent = (player: Player) => {
+  if (player === 'X') return '💕';
+  if (player === 'O') return '💖';
+  return '';
+};
+
+const isWinningCell = (index: number) => gameState?.winningLine.includes(index) || false;
+
+const canMakeMove = (index: number) => {
+  return gameState &&
+    gameState.status === 'playing' &&
+    gameState.board[index] === null &&
+    gameState.currentTurn === playerSymbol;
+};
+
+const [connectionError, setConnectionError] = useState(false);
+
+useEffect(() => {
+  // Timeout to stop showing loading screen if connection fails
+  const timer = setTimeout(() => {
+    if (!isConnected) {
+      setConnectionError(true);
+    }
+  }, 2000);
+  return () => clearTimeout(timer);
+}, [isConnected]);
+
+if (!isConnected && !connectionError) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-300 flex items-center justify-center">
+      <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 text-center">
+        <h1 className="text-3xl font-bold text-pink-600 mb-4">Connecting to Server...</h1>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto"></div>
+      </div>
+    </div>
+  );
+}
+
+if (!roomId) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-300 via-purple-300 to-indigo-300 relative overflow-hidden">
       {/* Floating Hearts Background */}

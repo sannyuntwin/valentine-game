@@ -19,6 +19,7 @@ const io = new Server(server, {
 const games = new Map();
 const heartGames = new Map();
 const charadesGames = new Map();
+const chessGames = new Map();
 
 // Unique ID generator
 let heartIdCounter = 0;
@@ -521,6 +522,128 @@ io.on('connection', (socket) => {
     console.log(`Charades game reset in room ${roomId}`);
   });
 
+  // Chess events
+  socket.on('create-chess-room', ({ playerName }) => {
+    const roomId = generateRoomId();
+    const game = {
+      id: roomId,
+      players: [{ id: socket.id, name: playerName, color: 'white' }],
+      board: [
+        ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+        ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+        [null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null],
+        ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+        ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+      ],
+      currentTurn: 'white',
+      status: 'waiting',
+      moveHistory: [],
+      capturedPieces: { white: [], black: [] }
+    };
+
+    chessGames.set(roomId, game);
+    socket.join(roomId);
+    socket.emit('chess-room-created', { roomId, playerInfo: game.players[0] });
+
+    console.log(`Chess room ${roomId} created by ${socket.id} (${playerName})`);
+  });
+
+  socket.on('join-chess-room', ({ roomId, playerName }) => {
+    const game = chessGames.get(roomId);
+
+    if (!game) {
+      socket.emit('error', 'Chess room not found');
+      return;
+    }
+
+    if (game.players.length >= 2) {
+      socket.emit('error', 'Chess room is full');
+      return;
+    }
+
+    const newPlayer = { id: socket.id, name: playerName, color: 'black' };
+    game.players.push(newPlayer);
+    socket.join(roomId);
+
+    // Start the game when 2 players join
+    if (game.players.length === 2) {
+      game.status = 'playing';
+    }
+
+    // Notify both players
+    socket.emit('chess-room-joined', { roomId, playerInfo: newPlayer });
+    socket.to(roomId).emit('player-joined-chess', newPlayer);
+
+    // Send current game state to both players
+    io.to(roomId).emit('chess-game-state', game);
+
+    console.log(`Player ${socket.id} (${playerName}) joined chess room ${roomId}`);
+  });
+
+  socket.on('make-chess-move', ({ roomId, from, to, piece, captured }) => {
+    const game = chessGames.get(roomId);
+
+    if (!game) {
+      socket.emit('error', 'Chess game not found');
+      return;
+    }
+
+    // Validate turn
+    const player = game.players.find(p => p.id === socket.id);
+    if (!player || player.color !== game.currentTurn) {
+      socket.emit('error', 'Not your turn');
+      return;
+    }
+
+    // Make the move
+    const newBoard = game.board.map(row => [...row]);
+    newBoard[to.row][to.col] = piece;
+    newBoard[from.row][from.col] = null;
+
+    // Update captured pieces
+    if (captured) {
+      game.capturedPieces[captured === captured.toUpperCase() ? 'black' : 'white'].push(captured);
+    }
+
+    // Update game state
+    game.board = newBoard;
+    game.currentTurn = game.currentTurn === 'white' ? 'black' : 'white';
+    game.moveHistory.push({ from, to, piece, captured });
+
+    // Broadcast updated game state
+    io.to(roomId).emit('chess-game-state', game);
+    io.to(roomId).emit('chess-move-made', { from, to, piece, captured, playerColor: player.color });
+
+    console.log(`Chess move made in room ${roomId}: ${piece} from ${from.row},${from.col} to ${to.row},${to.col}`);
+  });
+
+  socket.on('reset-chess-game', ({ roomId }) => {
+    const game = chessGames.get(roomId);
+
+    if (!game) return;
+
+    game.board = [
+      ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+      ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      [null, null, null, null, null, null, null, null],
+      ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+      ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+    ];
+    game.currentTurn = 'white';
+    game.status = 'playing';
+    game.moveHistory = [];
+    game.capturedPieces = { white: [], black: [] };
+
+    io.to(roomId).emit('chess-game-state', game);
+    console.log(`Chess game reset in room ${roomId}`);
+  });
+
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
@@ -586,6 +709,27 @@ io.on('connection', (socket) => {
           game.currentCard = null;
           socket.to(roomId).emit('player-disconnected');
           io.to(roomId).emit('charades-game-state', game);
+        }
+        break;
+      }
+    }
+
+    // Clean up Chess games
+    for (const [roomId, game] of chessGames.entries()) {
+      const playerIndex = game.players.findIndex(p => p.id === socket.id);
+
+      if (playerIndex !== -1) {
+        game.players.splice(playerIndex, 1);
+
+        if (game.players.length === 0) {
+          // Delete empty games
+          chessGames.delete(roomId);
+          console.log(`Chess room ${roomId} deleted`);
+        } else {
+          // Notify remaining player
+          game.status = 'waiting';
+          socket.to(roomId).emit('player-disconnected');
+          io.to(roomId).emit('chess-game-state', game);
         }
         break;
       }
