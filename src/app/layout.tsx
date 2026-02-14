@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://your-valentine-game.vercel.app'),
   title: "Valentine's Day Games 💕",
   description: "Fun and romantic games for couples! Play together and may the best Valentine win! The loser gets to kiss the winner! 😘",
   keywords: "valentine, games, couples, romantic, fun, interactive, kiss, love",
