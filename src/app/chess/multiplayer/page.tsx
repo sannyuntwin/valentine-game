@@ -8,21 +8,21 @@ import { io, Socket } from 'socket.io-client';
 
 // Chess piece types with romantic emojis - different colors for each side
 const WHITE_PIECES = {
-  'K': { emoji: '🤍', name: 'King' },
+  'K': { emoji: '🤴', name: 'King' },
   'Q': { emoji: '👸', name: 'Queen' },
   'R': { emoji: '🏰', name: 'Rook' },
-  'B': { emoji: '💝', name: 'Bishop' },
-  'N': { emoji: '🦢', name: 'Knight' },
-  'P': { emoji: '💕', name: 'Pawn' }
+  'B': { emoji: '👼', name: 'Bishop' },
+  'N': { emoji: '🦄', name: 'Knight' },
+  'P': { emoji: '💗', name: 'Pawn' }
 };
 
 const BLACK_PIECES = {
-  'K': { emoji: '🖤', name: 'King' },
-  'Q': { emoji: '👑', name: 'Queen' },
-  'R': { emoji: '�', name: 'Rook' },
-  'B': { emoji: '🎁', name: 'Bishop' },
-  'N': { emoji: '�', name: 'Knight' },
-  'P': { emoji: '�', name: 'Pawn' }
+  'K': { emoji: '🧛', name: 'King' },
+  'Q': { emoji: '🧚‍♀️', name: 'Queen' },
+  'R': { emoji: '🏯', name: 'Rook' },
+  'B': { emoji: '🕊️', name: 'Bishop' },
+  'N': { emoji: '🦢', name: 'Knight' },
+  'P': { emoji: '💜', name: 'Pawn' }
 };
 
 interface Player {
@@ -169,7 +169,7 @@ export default function ChessMultiplayer() {
       case 'P': // Pawn
         const direction = isWhitePiece(piece) ? -1 : 1;
         const startRow = isWhitePiece(piece) ? 6 : 1;
-        
+
         // Forward move
         if (colDiff === 0 && !targetPiece) {
           if (rowDiff === direction) return true;
@@ -211,23 +211,23 @@ export default function ChessMultiplayer() {
   const isPathClear = (from: Position, to: Position, board: (string | null)[][]): boolean => {
     const rowStep = to.row > from.row ? 1 : to.row < from.row ? -1 : 0;
     const colStep = to.col > from.col ? 1 : to.col < from.col ? -1 : 0;
-    
+
     let currentRow = from.row + rowStep;
     let currentCol = from.col + colStep;
-    
+
     while (currentRow !== to.row || currentCol !== to.col) {
       if (board[currentRow][currentCol]) return false;
       currentRow += rowStep;
       currentCol += colStep;
     }
-    
+
     return true;
   };
 
   const getValidMoves = (position: Position, board: (string | null)[][]): Position[] => {
     const moves: Position[] = [];
     const piece = board[position.row][position.col];
-    
+
     if (!piece) return moves;
 
     for (let row = 0; row < 8; row++) {
@@ -237,7 +237,7 @@ export default function ChessMultiplayer() {
         }
       }
     }
-    
+
     return moves;
   };
 
@@ -255,11 +255,11 @@ export default function ChessMultiplayer() {
     if (selectedPiece) {
       // Try to move
       const isValid = validMoves.some(move => move.row === row && move.col === col);
-      
+
       if (isValid) {
         makeMove(selectedPiece, { row, col });
-      } else if (piece && ((myColor === 'white' && isWhitePiece(piece)) || 
-                           (myColor === 'black' && isBlackPiece(piece)))) {
+      } else if (piece && ((myColor === 'white' && isWhitePiece(piece)) ||
+        (myColor === 'black' && isBlackPiece(piece)))) {
         // Select new piece
         setSelectedPiece({ row, col });
         setValidMoves(getValidMoves({ row, col }, game.board));
@@ -268,8 +268,8 @@ export default function ChessMultiplayer() {
         setSelectedPiece(null);
         setValidMoves([]);
       }
-    } else if (piece && ((myColor === 'white' && isWhitePiece(piece)) || 
-                        (myColor === 'black' && isBlackPiece(piece)))) {
+    } else if (piece && ((myColor === 'white' && isWhitePiece(piece)) ||
+      (myColor === 'black' && isBlackPiece(piece)))) {
       // Select piece
       setSelectedPiece({ row, col });
       setValidMoves(getValidMoves({ row, col }, game.board));
@@ -301,15 +301,25 @@ export default function ChessMultiplayer() {
 
   const joinRoom = () => {
     if (!playerName.trim() || !roomCode.trim() || !socket) return;
-    socket.emit('join-chess-room', { 
-      playerName: playerName.trim(), 
-      roomId: roomCode.trim().toUpperCase() 
+    socket.emit('join-chess-room', {
+      playerName: playerName.trim(),
+      roomId: roomCode.trim().toUpperCase()
     });
+  };
+
+  const startGame = () => {
+    if (!game || !socket) return;
+    socket.emit('start-chess-game', { roomId: game.id });
   };
 
   const resetGame = () => {
     if (!game || !socket) return;
     socket.emit('reset-chess-game', { roomId: game.id });
+  };
+
+  const leaveRoom = () => {
+    socket?.disconnect();
+    router.push('/');
   };
 
   const copyRoomCode = () => {
@@ -321,13 +331,13 @@ export default function ChessMultiplayer() {
     const isLight = (row + col) % 2 === 0;
     const isSelected = selectedPiece && selectedPiece.row === row && selectedPiece.col === col;
     const isValidMove = validMoves.some(move => move.row === row && move.col === col);
-    
+
     if (isSelected) return 'bg-yellow-400';
     if (isValidMove) return 'bg-green-300';
     return isLight ? 'bg-pink-100' : 'bg-purple-200';
   };
 
-  const getPieceDisplay = (piece: string) => {
+  const getPieceDisplay = (piece: string | null) => {
     if (!piece) return '';
     const isWhite = piece === piece.toUpperCase();
     const pieces = isWhite ? WHITE_PIECES : BLACK_PIECES;
@@ -350,128 +360,76 @@ export default function ChessMultiplayer() {
   if (gameState === 'menu') {
     return (
       <>
-        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 p-4">
-          <div className="max-w-6xl mx-auto">
-            {/* Header */}
+        <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-indigo-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-                ♟️ Love Chess
+              <div className="text-6xl mb-4">♟️</div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                Love Chess
               </h1>
               <p className="text-gray-600">Play chess with your Valentine! 💕</p>
             </div>
 
-            {/* Game content */}
-            {gameState === 'menu' && (
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-8 max-w-md mx-auto">
-                <h2 className="text-2xl font-bold text-center mb-6 text-purple-700">Multiplayer Chess</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
-                    <input
-                      type="text"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      placeholder="Enter your name"
-                    />
-                  </div>
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={createRoom}
-                      className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all transform hover:scale-105"
-                    >
-                      Create Room
-                    </button>
-                    <button
-                      onClick={joinRoom}
-                      className="flex-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-600 transition-all transform hover:scale-105"
-                    >
-                      Join Room
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {gameState === 'room' && (
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-8 max-w-md mx-auto">
-                <h2 className="text-2xl font-bold text-center mb-6 text-purple-700">Room Created</h2>
-                <div className="text-center space-y-4">
-                  <div className="bg-purple-100 p-4 rounded-lg">
-                    <p className="text-lg font-semibold text-purple-800">Room Code:</p>
-                    <p className="text-3xl font-bold text-purple-900">{roomCode}</p>
-                  </div>
-                  <button
-                    onClick={copyRoomCode}
-                    className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-3 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all transform hover:scale-105"
-                  >
-                    Copy Room Code
-                  </button>
-                  <button
-                    onClick={startGame}
-                    className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white px-6 py-3 rounded-lg hover:from-pink-600 hover:to-red-600 transition-all transform hover:scale-105"
-                  >
-                    Start Game
-                  </button>
-                  <button
-                    onClick={leaveRoom}
-                    className="w-full bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-all transform hover:scale-105"
-                  >
-                    Leave Room
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {gameState === 'playing' && game && (
+            <div className="space-y-4">
               <div>
-                {/* Game info */}
-                <div className="bg-white/90 backdrop-blur-sm rounded-lg p-4 mb-6 text-center">
-                  <div className="flex justify-between items-center">
-                    <div className="text-lg font-semibold">
-                      {game.currentTurn === 'white' ? '⚪ White\'s Turn' : '⚫ Black\'s Turn'}
-                    </div>
-                    <div className="text-lg">
-                      You are: {myColor === 'white' ? '⚪ White' : '⚫ Black'}
-                    </div>
-                    <button
-                      onClick={resetGame}
-                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all"
-                    >
-                      Reset Game
-                    </button>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Name
+                </label>
+                <input
+                  type="text"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-pink-200 rounded-xl focus:outline-none focus:border-pink-400 transition-colors"
+                  placeholder="Enter your name"
+                />
+              </div>
+
+              <div className="border-t pt-4">
+                <button
+                  onClick={createRoom}
+                  disabled={!playerName.trim()}
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-xl font-semibold hover:from-pink-600 hover:to-purple-600 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+                >
+                  Create Room 💕
+                </button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">OR</span>
                   </div>
                 </div>
 
-                {/* Chess board */}
-                <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6">
-                  <div className="grid grid-cols-8 gap-0 border-4 border-purple-800 max-w-2xl mx-auto">
-                    {game.board.map((row, rowIndex) => (
-                      <div key={rowIndex} className="flex">
-                        {row.map((piece, colIndex) => (
-                          <div
-                            key={colIndex}
-                            onClick={() => handleSquareClick(rowIndex, colIndex)}
-                            className={`w-16 h-16 border border-gray-400 flex items-center justify-center text-2xl cursor-pointer hover:bg-purple-200 transition-colors ${getSquareColor(rowIndex, colIndex)}`}
-                          >
-                            {piece && <span>{getPieceDisplay(piece)}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="text-center mt-6">
+                <div className="mt-4 space-y-3">
+                  <input
+                    type="text"
+                    value={roomCode}
+                    onChange={(e) => setRoomCode(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-400 transition-colors text-center font-mono text-lg"
+                    placeholder="Enter room code"
+                    maxLength={6}
+                  />
                   <button
-                    onClick={leaveRoom}
-                    className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-all"
+                    onClick={joinRoom}
+                    disabled={!playerName.trim() || !roomCode.trim()}
+                    className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-xl font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Leave Game
+                    Join Room 🎮
                   </button>
                 </div>
               </div>
-            )}
+            </div>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => router.push('/')}
+                className="text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                ← Back to Games
+              </button>
+            </div>
           </div>
         </div>
         {alert.isVisible && (
@@ -511,7 +469,7 @@ export default function ChessMultiplayer() {
                 </span>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <h3 className="text-xl font-semibold text-center mb-4">Players ({game.players.length}/2)</h3>
               {game.players.map((player) => (
@@ -528,7 +486,7 @@ export default function ChessMultiplayer() {
                 </div>
               ))}
             </div>
-            
+
             {game.players.length < 2 && (
               <div className="mt-6 text-center">
                 <div className="text-6xl mb-4 animate-pulse">⏳</div>
@@ -536,14 +494,14 @@ export default function ChessMultiplayer() {
                 <p className="text-sm text-gray-500 mt-2">Share the room code above!</p>
               </div>
             )}
-            
+
             {game.players.length === 2 && game.status === 'waiting' && (
               <div className="mt-6 text-center">
                 <div className="text-6xl mb-4 animate-bounce">🎉</div>
                 <p className="text-green-600 font-semibold">Game starting soon...</p>
               </div>
             )}
-            
+
             <div className="mt-8 text-center">
               <button
                 onClick={() => {
@@ -601,21 +559,21 @@ export default function ChessMultiplayer() {
             {/* Chess Board */}
             <div className="bg-white rounded-2xl shadow-2xl p-6">
               <div className="grid grid-cols-8 gap-0 border-4 border-blue-300">
-                {game.board.map((row, rowIndex) => 
+                {game.board.map((row, rowIndex) =>
                   row.map((piece, colIndex) => (
                     <div
                       key={`${rowIndex}-${colIndex}`}
                       className={`w-16 h-16 flex items-center justify-center cursor-pointer transition-colors ${getSquareColor(rowIndex, colIndex)}`}
                       onClick={() => handleSquareClick(rowIndex, colIndex)}
                     >
-                      <span className="text-3xl">
+                      <span className={`text-4xl transition-all duration-300 ${piece ? (piece === piece.toUpperCase() ? 'drop-shadow-[0_0_8px_rgba(236,72,153,0.8)]' : 'drop-shadow-[0_0_8px_rgba(139,92,246,0.8)]') : ''}`}>
                         {getPieceDisplay(piece)}
                       </span>
                     </div>
                   ))
                 )}
               </div>
-              
+
               {/* Board Labels */}
               <div className="flex justify-around mt-2 text-sm text-gray-600">
                 {['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(letter => (
