@@ -33,7 +33,8 @@ export default function LoveCharadesMultiplayer() {
   const router = useRouter();
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3001', {
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const newSocket = io(socketUrl, {
       transports: ['polling'],
       timeout: 10000,
       forceNew: true,
