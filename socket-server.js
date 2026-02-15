@@ -606,11 +606,26 @@ io.on('connection', (socket) => {
     // Update captured pieces
     if (captured) {
       game.capturedPieces[captured === captured.toUpperCase() ? 'black' : 'white'].push(captured);
+      
+      // Check if a king was captured
+      if (captured.toUpperCase() === 'K') {
+        game.status = 'finished';
+        game.winner = player.color;
+        
+        // Broadcast game over state
+        io.to(roomId).emit('chess-game-over', { 
+          winner: player.color, 
+          winnerName: player.name,
+          capturedKing: captured 
+        });
+      }
     }
 
     // Update game state
     game.board = newBoard;
-    game.currentTurn = game.currentTurn === 'white' ? 'black' : 'white';
+    if (game.status !== 'finished') {
+      game.currentTurn = game.currentTurn === 'white' ? 'black' : 'white';
+    }
     game.moveHistory.push({ from, to, piece, captured });
 
     // Broadcast updated game state

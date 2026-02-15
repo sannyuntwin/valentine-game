@@ -36,7 +36,7 @@ interface ChessGame {
   players: Player[];
   board: (string | null)[][];
   currentTurn: 'white' | 'black';
-  status: 'waiting' | 'playing';
+  status: 'waiting' | 'playing' | 'finished';
   moveHistory: Array<{
     from: { row: number; col: number };
     to: { row: number; col: number };
@@ -44,6 +44,7 @@ interface ChessGame {
     captured?: string;
   }>;
   capturedPieces: { white: string[]; black: string[] };
+  winner?: 'white' | 'black';
 }
 
 interface Position {
@@ -130,6 +131,10 @@ export default function ChessMultiplayer() {
       if (gameState.status === 'playing') {
         setGameState('playing');
       }
+    });
+
+    newSocket.on('chess-game-over', ({ winner, winnerName, capturedKing }) => {
+      showAlert(`🎉 Game Over! ${winnerName} (${winner === 'white' ? '🤍 White' : '🖤 Black'}) wins by capturing the ${capturedKing === 'K' ? 'White' : 'Black'} King!`, 'success');
     });
 
     newSocket.on('chess-move-made', ({ from, to, piece, captured, playerColor }) => {
@@ -528,14 +533,28 @@ export default function ChessMultiplayer() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
               ♟️ Love Chess
             </h1>
+            
+            {/* Game Over Display */}
+            {game.status === 'finished' && game.winner && (
+              <div className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white p-6 rounded-2xl mb-4 animate-pulse">
+                <h2 className="text-3xl font-bold mb-2">🎉 Game Over!</h2>
+                <p className="text-xl">
+                  {game.winner === 'white' ? '🤍 White' : '🖤 Black'} Wins!
+                </p>
+                <p className="text-lg mt-2">
+                  {game.players.find(p => p.color === game.winner)?.name} captured the enemy King! 👑
+                </p>
+              </div>
+            )}
+            
             <div className="flex justify-center gap-8 text-lg">
               <span className="bg-white/80 px-4 py-2 rounded-full">
-                Current Turn: {game.currentTurn === 'white' ? '🤍 White' : '🖤 Black'}
+                Current Turn: {game.status === 'finished' ? 'Game Ended' : (game.currentTurn === 'white' ? '🤍 White' : '🖤 Black')}
               </span>
               <span className="bg-white/80 px-4 py-2 rounded-full">
                 You are: {myColor === 'white' ? '🤍 White' : '🖤 Black'}
               </span>
-              {game.currentTurn !== myColor && (
+              {game.status === 'playing' && game.currentTurn !== myColor && (
                 <span className="bg-yellow-100 px-4 py-2 rounded-full text-yellow-800">
                   ⏳ Waiting for partner...
                 </span>
