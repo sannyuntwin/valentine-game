@@ -3,19 +3,24 @@
 import { useState, useRef, useEffect } from 'react';
 
 export default function MusicButton() {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Create audio element with a soft piano music source
     // Using a placeholder - replace with your actual music file URL
-    audioRef.current = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    audioRef.current = new Audio('/music/hb.mp3');
     audioRef.current.loop = true;
     audioRef.current.volume = 0.3; // Soft volume
 
     audioRef.current.addEventListener('canplaythrough', () => {
       setIsLoaded(true);
+      // Auto-play when loaded
+      audioRef.current?.play().catch(() => {
+        // Auto-play blocked by browser, will need user interaction
+        setIsPlaying(false);
+      });
     });
 
     return () => {
