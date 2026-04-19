@@ -104,6 +104,26 @@ export default function Home() {
       gradient: "from-blue-400 to-purple-500",
       borderColor: "border-blue-200",
       hoverColor: "group-hover:text-blue-700"
+    },
+    {
+      id: "love-farm",
+      emoji: "🌾",
+      title: "Love Farm",
+      description: "Build a romantic farm together! Plant crops, go fishing, and create your cozy countryside paradise with your valentine!",
+      color: "green",
+      gradient: "from-green-400 to-emerald-500",
+      borderColor: "border-green-200",
+      hoverColor: "group-hover:text-green-700"
+    },
+    {
+      id: "happy-birthday",
+      emoji: "🎂",
+      title: "Birthday Surprise",
+      description: "A magical birthday surprise! Romantic scenes, cake with candles, memory gallery, and a secret love letter. Make their day special!",
+      color: "yellow",
+      gradient: "from-yellow-400 to-orange-500",
+      borderColor: "border-yellow-200",
+      hoverColor: "group-hover:text-yellow-700"
     }
   ];
 
@@ -132,9 +152,15 @@ export default function Home() {
           {/* Enhanced Header */}
           <header className="text-center mb-16">
             <div className={`transition-all duration-1000 transform ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-6 animate-pulse">
+              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4 animate-pulse">
                 💖 Valentine's Day Games 💕
               </h1>
+              <p className="text-lg md:text-xl text-pink-500 font-medium mb-2 animate-pulse">
+                Hey bae… I made something for you 💖
+              </p>
+              <Link href="/happy-birthday" className="inline-block text-sm text-pink-500 font-medium mb-4 hover:text-pink-600 hover:scale-110 transition-all duration-300 cursor-pointer animate-pulse">
+                - Click -
+              </Link>
               <p className="text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto leading-relaxed">
                 Fun and romantic games for couples! Play together and may the best Valentine win!
                 <span className="inline-block ml-2 text-pink-600 font-semibold animate-bounce">The loser gets to kiss the winner! 😘</span>
