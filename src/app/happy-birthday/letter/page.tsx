@@ -125,28 +125,22 @@ export default function SecretLetter() {
                 My Love,
               </p>
               <p>
-                As I write this, my heart is overflowing with love for you. On this special day, 
-                I want you to know just how deeply you have touched my life.
+                Pa နှလုံးသားထဲမှာ Bae အတွက် အချစ်တွေနဲ့ ပြည့်နေတယ် ဆိုတာ ယုံပါနော်။ 
+                ဒီထူးခြားတဲ့နေ့မှာ Bae သိထားသင့်တာက Bae က Pa ဘဝကို စိတ်ပိုင်းဆိုင်ရာ ကောင်းတဲ့ပြောင်းလဲမှုတွေ ပေးခဲ့တယ်ဆိုတာပဲ။
               </p>
               <p>
-                You are the first thought in my mind when I wake, and the last before I sleep. 
-                Your laughter is my favorite melody, your smile my greatest treasure. 
-                In your eyes, I have found my home.
+                အရင်က တစ်ပါးသူထက် ကိုယ့်အတွက်ပဲ ကြည့်တတ်တဲ့ Pa က အခုဆို သူ့များအတွက်တွေလည်း နားလည်ပေးတတ်လာပြီပဲ။ 
+                Bae က တစ်ခါတစ်လေ ချစ်ဖို့ကောင်းသလို တစ်ခါတစ်လေကျတော့လည်း ပြောစကား နားမထောင် ပြောရ တအားခက်။ 
               </p>
               <p>
-                Every moment with you feels like a gift—a beautiful, precious gift that 
-                I promise to cherish for all my days. You make ordinary moments magical 
-                and difficult times bearable just by being you.
+                နေ့ရက်တိုင်းကို အကောင်းဆုံးဖြစ်စေဖို့ စိတ်ကောင်းထားရမယ်နော်။ မာယာတွေများတဲ့ ဒီလောကကြီးထဲမှာ ဘယ်သူတွေ  တရားပျက်
+                ပျက် ကိုယ်မပျက်ဖို့တော့ လိုမယ်နော် BAE
               </p>
               <p>
-                I love the way you light up a room, the way you care so deeply, 
-                and the way you love so fiercely. You inspire me to be better, 
-                to dream bigger, and to love harder.
+                အခုဆို Bae အသက်တစ်နှစ် ကြီးလာပြီး .... Pa စကားကိုလည်း ပိုနားထောင်ဖို့ လိုပါတယ်။
               </p>
               <p>
-                On your birthday, I wish you all the happiness this world can offer 
-                and all the love your heart can hold. May this year bring you 
-                countless reasons to smile and endless moments of joy.
+                Bae မွေးနေ့မှာ ကောင်းခြင်းအဖြာဖြာနဲ့ ပြည့်စုံပြီး လိုအင်ဆန္ဒတွေ ပြည့်ဝပါစေလို့ Pa အဝေးကနေ ဆုတောင်းပေးပါတယ်နော်။
               </p>
               <p className="text-pink-600 font-semibold italic">
                 Happy Birthday, my love. I am so grateful you were born.

@@ -2,52 +2,32 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import MusicButton from '../components/MusicButton';
 
 export default function SurpriseGallery() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const router = useRouter();
 
-  // Sample memory data - replace with actual photos and messages
+  // Memory data with images - add your photos to /public/images/memories/
   const memories = [
     {
       id: 1,
-      emoji: '📸',
+      image: '/images/memories/photo1.jpg',
       title: 'Our First Meeting',
       message: 'The day my life changed forever. When I first saw you, I knew something special was beginning.',
       color: 'from-pink-400 to-rose-500'
     },
     {
       id: 2,
-      emoji: '☕',
-      title: 'Coffee Dates',
-      message: 'Every coffee with you tastes sweeter than the last. Your smile is my favorite sight.',
-      color: 'from-amber-400 to-orange-500'
-    },
-    {
-      id: 3,
-      emoji: '🌅',
+      image: '/images/memories/photo2.jpg',
       title: 'Sunset Moments',
       message: 'Watching sunsets with you makes every evening magical. You are my sunshine.',
       color: 'from-purple-400 to-indigo-500'
     },
     {
-      id: 4,
-      emoji: '🎬',
-      title: 'Movie Nights',
-      message: 'Cuddled up watching movies, your hand in mine. These are the moments I live for.',
-      color: 'from-blue-400 to-cyan-500'
-    },
-    {
-      id: 5,
-      emoji: '✈️',
-      title: 'Adventures Together',
-      message: 'Every journey is better with you by my side. Here is to many more adventures!',
-      color: 'from-green-400 to-emerald-500'
-    },
-    {
-      id: 6,
-      emoji: '💑',
+      id: 3,
+      image: '/images/memories/photo3.jpg',
       title: 'Us',
       message: 'You are my today and all of my tomorrows. I love you more than words can say.',
       color: 'from-red-400 to-pink-500'
@@ -100,9 +80,16 @@ export default function SurpriseGallery() {
       <div className="relative w-full max-w-2xl z-10">
         {/* Memory Card */}
         <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 md:p-12 border border-white/20 shadow-2xl min-h-[400px] flex flex-col items-center justify-center text-center transition-all duration-500">
-          {/* Memory Emoji */}
-          <div className={`text-7xl md:text-8xl mb-6 transform transition-all duration-500 hover:scale-110`}>
-            {memories[currentIndex].emoji}
+          {/* Memory Image */}
+          <div className="relative w-48 h-48 md:w-64 md:h-64 mb-6 rounded-2xl overflow-hidden shadow-xl transform transition-all duration-500 hover:scale-105 border-4 border-white/20">
+            <Image
+              src={memories[currentIndex].image}
+              alt={memories[currentIndex].title}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 192px, 256px"
+              priority={currentIndex === 0}
+            />
           </div>
 
           {/* Memory Title */}
